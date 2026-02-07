@@ -15,13 +15,14 @@ This project extends Persona Plex with agentic capabilities and provides deploym
 
 ## 📋 What This Repository Provides
 
-### 1. **Detailed Instance Recommendations**
-- Comprehensive analysis of GCP instance types for Persona Plex
-- GPU comparisons (A100 vs T4)
-- Cost-performance analysis
-- Memory and compute requirements breakdown
+### 1. **Simplified Deployment for MVP**
+- One-command deploy with `deploy.sh`
+- Uses default VPC (no custom network permissions needed)
+- NVIDIA T4 GPU — cost-effective for MVP with GCP free credits
+- Easy upgrade path to A100 for production
 
 ### 2. **Complete Deployment Infrastructure**
+- **deploy.sh**: One-command deployment (recommended)
 - **Terraform**: Infrastructure as Code for reproducible deployments
 - **gcloud Scripts**: Alternative deployment using gcloud CLI
 - **Docker**: Containerized deployment with GPU support
@@ -31,7 +32,6 @@ This project extends Persona Plex with agentic capabilities and provides deploym
 - Python environment setup with all dependencies
 - Model download scripts with Hugging Face integration
 - GPU driver installation and verification
-- Monitoring and logging setup
 
 ### 4. **Comprehensive Documentation**
 - Step-by-step deployment guide
@@ -43,14 +43,32 @@ This project extends Persona Plex with agentic capabilities and provides deploym
 
 ### Prerequisites
 
-1. **GCP Account** with billing enabled
-2. **GPU Quota** for A100 or T4 ([Request here](https://console.cloud.google.com/iam-admin/quotas))
+1. **GCP Account** with billing enabled (free credits work)
+2. **GPU Quota** for T4 ([Request here](https://console.cloud.google.com/iam-admin/quotas))
 3. **gcloud CLI** ([Install](https://cloud.google.com/sdk/docs/install))
-4. **Terraform** ([Install](https://developer.hashicorp.com/terraform/downloads)) (optional)
 
 ### Deployment Steps
 
-#### Option 1: Terraform (Recommended)
+#### Recommended: deploy.sh
+
+```bash
+# 1. Clone repository
+git clone https://github.com/varun-ahlawat/VoiceControlAgent.git
+cd VoiceControlAgent
+
+# 2. Deploy with single command
+cd deployment/gcp
+./deploy.sh
+
+# 3. Access
+# Get IP: gcloud compute instances describe persona-plex-gpu --zone=us-central1-a --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
+# Visit: https://EXTERNAL_IP:8998
+
+# 4. Stop when done (save credits)
+gcloud compute instances stop persona-plex-gpu --zone=us-central1-a
+```
+
+#### Alternative: Terraform
 
 ```bash
 # 1. Clone repository
@@ -71,7 +89,7 @@ terraform apply
 gcloud compute ssh persona-plex-gpu --zone=us-central1-a
 ```
 
-#### Option 2: gcloud CLI
+#### Alternative: gcloud CLI
 
 ```bash
 # 1. Clone repository
@@ -83,27 +101,35 @@ cd deployment/gcp
 ./gcloud-deploy.sh YOUR_PROJECT_ID
 ```
 
-### Post-Deployment Setup
-
-Once connected to your instance:
+### Post-Deployment
 
 ```bash
-# 1. Run setup script (installs PyTorch, dependencies, etc.)
-sudo bash /opt/persona-plex/setup.sh
+# SSH into instance
+gcloud compute ssh persona-plex-gpu --zone=us-central1-a
 
-# 2. Download Persona Plex model from Hugging Face
-sudo bash /opt/persona-plex/scripts/download_models.sh
-
-# 3. Verify GPU
+# Verify GPU
 nvidia-smi
 
-# 4. Test PyTorch CUDA
+# Test PyTorch CUDA
 python3 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 ```
 
 ## 📊 Instance Recommendations
 
-### Production (Recommended)
+### MVP (Default)
+
+```
+Instance: n1-standard-4 + NVIDIA T4 (16GB)
+- vCPUs: 4
+- RAM: 15 GB
+- GPU: 1x T4 (16GB VRAM)
+- Storage: 200 GB SSD
+- Network: Default VPC
+- Cost: ~$0.67/hour (~$489/month)
+- With $300 free credits: ~18 days of 24/7 usage
+```
+
+### Production (Upgrade)
 
 ```
 Instance: n1-standard-8 + NVIDIA A100 (40GB)
@@ -115,28 +141,6 @@ Instance: n1-standard-8 + NVIDIA A100 (40GB)
 - With commitment: ~$1,400/month (save 35%)
 ```
 
-**Why A100?**
-- 40GB VRAM sufficient for 7B-13B parameter models
-- 312 TFLOPS FP16 performance
-- 1,555 GB/s memory bandwidth
-- Low latency for real-time voice (<200ms)
-
-### Development/Testing
-
-```
-Instance: n1-standard-4 + NVIDIA T4 (16GB)
-- vCPUs: 4
-- RAM: 15 GB
-- GPU: 1x T4 (16GB VRAM)
-- Storage: 200 GB SSD
-- Cost: ~$0.95/hour (~$700/month)
-```
-
-**Good for:**
-- Development and testing
-- Smaller models or quantized versions (INT8)
-- Budget-conscious deployments
-
 See [PERSONA_PLEX_GCP_SETUP.md](docs/PERSONA_PLEX_GCP_SETUP.md) for detailed analysis.
 
 ## 📁 Repository Structure
@@ -145,11 +149,12 @@ See [PERSONA_PLEX_GCP_SETUP.md](docs/PERSONA_PLEX_GCP_SETUP.md) for detailed ana
 VoiceControlAgent/
 ├── deployment/
 │   └── gcp/
+│       ├── deploy.sh                  # One-command deployment (recommended)
 │       ├── main.tf                    # Terraform main configuration
 │       ├── terraform.tfvars.example   # Example variables
 │       ├── startup-script.sh          # Instance initialization
 │       ├── Dockerfile                 # Container image
-│       ├── docker-compose.yml         # Multi-container setup
+│       ├── docker-compose.yml         # Container deployment
 │       ├── gcloud-deploy.sh          # gcloud deployment script
 │       ├── gcloud-cleanup.sh         # Resource cleanup script
 │       └── README.md                  # Deployment README
@@ -205,16 +210,15 @@ gsutil -m cp -r gs://your-bucket/persona-plex/* \
 
 | Configuration | Compute | Storage | Network | Total/Month |
 |--------------|---------|---------|---------|-------------|
+| **T4 (Default/MVP)** | $489 | $34 | $20 | **$543** |
 | A100 (On-Demand) | $2,153 | $85 | $50 | **$2,288** |
 | A100 (1-year commit) | $1,327 | $85 | $50 | **$1,462** |
-| T4 (On-Demand) | $657 | $34 | $50 | **$741** |
-| T4 (1-year commit) | $405 | $34 | $50 | **$489** |
 
 ### Cost Optimization Tips
 
-1. **Committed Use Discounts**: Save 35-55% with 1-3 year commitments
-2. **Preemptible Instances**: Save 60-70% for development (use in terraform with `preemptible = true`)
-3. **Auto-Shutdown**: Stop instances during off-hours
+1. **Stop when idle**: Most important — stop the instance when not in use
+2. **$300 free credits**: T4 at ~$0.67/hour = ~18 days of 24/7 usage
+3. **Preemptible Instances**: Save 60-70% for development (use in terraform with `preemptible = true`)
 4. **Regional Selection**: Some regions are cheaper (check current pricing)
 
 ## 🔍 Monitoring
@@ -230,11 +234,7 @@ nvidia-smi dmon -s pucvmet
 
 ### Application Monitoring
 
-The Docker Compose setup includes:
-- **Prometheus** - Metrics collection (port 9091)
-- **Grafana** - Visualization dashboards (port 3000)
-
-Access at: `http://YOUR_INSTANCE_IP:3000`
+For MVP, use `nvidia-smi` and GCP Cloud Logging. Prometheus and Grafana can be added later by extending `docker-compose.yml`.
 
 ## 🛠️ Troubleshooting
 

@@ -20,9 +20,9 @@ This guide walks you through deploying Persona Plex on Google Cloud Platform wit
 - (Optional) Docker for containerized deployment
 
 ### GCP Requirements
-- Active GCP account with billing enabled
+- Active GCP account with billing enabled (free credits work)
 - Project with Compute Engine API enabled
-- GPU quota for A100 or T4 instances
+- GPU quota for T4 instances in us-central1
 - Sufficient permissions (Project Editor or Compute Admin)
 
 ### Request GPU Quota
@@ -30,8 +30,8 @@ This guide walks you through deploying Persona Plex on Google Cloud Platform wit
 By default, GCP limits GPU usage. Request quota increase:
 
 1. Go to [GCP Console > IAM & Admin > Quotas](https://console.cloud.google.com/iam-admin/quotas)
-2. Filter by: "NVIDIA A100 GPUs" or "NVIDIA T4 GPUs"
-3. Select your region (e.g., us-central1)
+2. Filter by: "NVIDIA T4 GPUs"
+3. Select region: us-central1
 4. Click "EDIT QUOTAS" and request at least 1 GPU
 5. Wait for approval (usually 24-48 hours)
 
@@ -58,7 +58,14 @@ gcloud services enable compute.googleapis.com
 gcloud services enable storage.googleapis.com
 ```
 
-### 3. Deploy with Terraform
+### 3. Deploy with deploy.sh (Recommended)
+
+```bash
+cd deployment/gcp
+./deploy.sh
+```
+
+### Alternative: Deploy with Terraform
 
 ```bash
 cd deployment/gcp
@@ -77,27 +84,18 @@ terraform plan
 terraform apply
 ```
 
-### 4. Connect to Instance
+### 4. Access
 
 ```bash
-# Get SSH command from Terraform output
-terraform output ssh_command
+# Get instance IP
+gcloud compute instances describe persona-plex-gpu \
+    --zone=us-central1-a \
+    --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
 
-# Or connect directly
+# Visit: https://EXTERNAL_IP:8998
+
+# SSH into the instance
 gcloud compute ssh persona-plex-gpu --zone=us-central1-a
-```
-
-### 5. Setup Instance
-
-```bash
-# Once connected, run setup
-sudo bash /opt/persona-plex/setup.sh
-
-# This will:
-# - Create Python virtual environment
-# - Install PyTorch with CUDA
-# - Install all dependencies
-# - Verify GPU availability
 ```
 
 ## Detailed Setup
@@ -114,12 +112,12 @@ project_id = "your-gcp-project-id"
 region        = "us-central1"        # Choose closest to users
 zone          = "us-central1-a"
 instance_name = "persona-plex-gpu"
-machine_type  = "n1-standard-8"      # 8 vCPUs, 30 GB RAM
+machine_type  = "n1-standard-4"      # 4 vCPUs, 15 GB RAM
 
 # GPU Configuration
-gpu_type  = "nvidia-tesla-a100"      # or "nvidia-tesla-t4" for budget
+gpu_type  = "nvidia-tesla-t4"        # default for MVP
 gpu_count = 1
-disk_size_gb = 500                    # SSD storage
+disk_size_gb = 200                    # SSD storage
 
 # Environment
 environment = "prod"                  # or "dev", "staging"
@@ -127,29 +125,21 @@ environment = "prod"                  # or "dev", "staging"
 
 ### Budget Options
 
-**Development/Testing:**
+**MVP (Default):**
 ```hcl
 machine_type = "n1-standard-4"
 gpu_type     = "nvidia-tesla-t4"
 disk_size_gb = 200
 ```
-Cost: ~$0.95/hour (~$700/month)
+Cost: ~$0.67/hour (~$489/month)
 
-**Production (Recommended):**
+**Production (Upgrade):**
 ```hcl
 machine_type = "n1-standard-8"
 gpu_type     = "nvidia-tesla-a100"
 disk_size_gb = 500
 ```
 Cost: ~$2.95/hour (~$2,150/month)
-
-**High-Performance:**
-```hcl
-machine_type = "a2-highgpu-1g"
-gpu_type     = "nvidia-tesla-a100"
-disk_size_gb = 1000
-```
-Cost: ~$3.67/hour (~$2,680/month)
 
 ## Model Download
 
@@ -332,11 +322,8 @@ journalctl -u persona-plex -f
 
 ### Prometheus Metrics
 
-If using Docker Compose with Prometheus:
-
-1. Access Prometheus: http://INSTANCE_IP:9091
-2. Access Grafana: http://INSTANCE_IP:3000
-   - Default login: admin/admin
+Prometheus and Grafana are not included in the default MVP deployment to keep things simple.
+To add monitoring later, you can extend `docker-compose.yml` with Prometheus and Grafana services.
 
 ## Troubleshooting
 
@@ -421,7 +408,22 @@ sudo chmod -R 755 /opt/persona-plex
 
 ## Cost Optimization
 
-### 1. Use Committed Use Discounts
+### 1. Stop When Not in Use (Most Important for MVP)
+
+```bash
+# Stop instance when done
+gcloud compute instances stop persona-plex-gpu --zone=us-central1-a
+
+# Start when needed
+gcloud compute instances start persona-plex-gpu --zone=us-central1-a
+```
+
+With $300 free credits:
+- 24/7 usage: ~18 days
+- 12 hours/day: ~37 days
+- Stop when idle to maximize credit lifetime
+
+### 2. Use Committed Use Discounts (Production)
 - Save 37% with 1-year commitment
 - Save 55% with 3-year commitment
 
