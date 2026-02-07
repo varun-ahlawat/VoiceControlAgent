@@ -1,0 +1,53 @@
+# Prometheus configuration for Persona Plex monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'persona-plex'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Scrape configurations
+scrape_configs:
+  # Persona Plex application metrics
+  - job_name: 'persona-plex'
+    static_configs:
+      - targets: ['persona-plex:9090']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Node Exporter for system metrics (if installed)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'node_.*'
+        action: keep
+
+  # NVIDIA GPU metrics (if dcgm-exporter is installed)
+  - job_name: 'gpu-metrics'
+    static_configs:
+      - targets: ['dcgm-exporter:9400']
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'DCGM_.*'
+        action: keep
+
+# Recording rules for aggregations
+# rule_files:
+#   - 'recording_rules.yml'
+#   - 'alerting_rules.yml'
