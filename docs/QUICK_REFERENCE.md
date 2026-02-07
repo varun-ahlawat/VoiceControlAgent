@@ -5,12 +5,16 @@
 ### Initial Deployment
 
 ```bash
-# Terraform
+# Recommended: One-command deploy
+cd deployment/gcp
+./deploy.sh
+
+# Alternative: Terraform
 cd deployment/gcp
 cp terraform.tfvars.example terraform.tfvars
 terraform init && terraform apply
 
-# gcloud CLI
+# Alternative: gcloud CLI
 cd deployment/gcp
 ./gcloud-deploy.sh YOUR_PROJECT_ID
 ```
@@ -187,7 +191,7 @@ gcloud compute scp persona-plex-gpu:~/REMOTE_FILE ./LOCAL_PATH --zone=us-central
 
 | Instance | vCPU | RAM | GPU | VRAM | Cost/hr | Use Case |
 |----------|------|-----|-----|------|---------|----------|
-| n1-standard-4 + T4 | 4 | 15GB | T4 | 16GB | $0.95 | Development |
+| n1-standard-4 + T4 | 4 | 15GB | T4 | 16GB | $0.67 | **MVP (Default)** |
 | n1-standard-8 + A100 | 8 | 30GB | A100 | 40GB | $2.95 | Production |
 | a2-highgpu-1g | 12 | 85GB | A100 | 80GB | $3.67 | High-Performance |
 

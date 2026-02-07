@@ -28,70 +28,56 @@ Based on NVIDIA's recent model releases and voice AI requirements:
 
 ## 2. Recommended GCP Instance Type
 
-### **Primary Recommendation: n1-standard-8 with NVIDIA A100 (40GB or 80GB)**
+### **MVP Recommendation: n1-standard-4 with NVIDIA T4 (16GB)**
 
 **Instance Configuration:**
-```
-Machine Type: n1-standard-8
-- vCPUs: 8
-- Memory: 30 GB RAM
-- GPU: 1x NVIDIA A100 (40GB or 80GB)
-- Storage: 500 GB SSD Persistent Disk
-- Region: us-central1 (Iowa) or us-west1 (Oregon)
-```
-
-### Why This Instance Type?
-
-#### 1. **GPU Selection: NVIDIA A100**
-- **Tensor Cores**: A100 has 3rd generation Tensor Cores optimized for transformer models
-- **Memory**: 40GB or 80GB HBM2e provides ample space for:
-  - Model weights (14-26 GB)
-  - Activation memory during inference
-  - Batch processing for efficiency
-  - Audio processing buffers
-- **Performance**: 312 TFLOPS FP16, 624 TFLOPS with sparsity
-- **Memory Bandwidth**: 1,555 GB/s (40GB) or 2,039 GB/s (80GB)
-- **Multi-Instance GPU (MIG)**: Can partition GPU if needed for development/testing
-- **NVLink**: High-speed inter-GPU communication if scaling to multi-GPU
-
-#### 2. **CPU Selection: n1-standard-8**
-- **8 vCPUs**: Sufficient for:
-  - Preprocessing audio streams
-  - Managing API requests
-  - Running auxiliary services
-  - Parallel data loading
-- **30 GB RAM**: Adequate for:
-  - Model loading and caching
-  - Request queuing
-  - Operating system and dependencies
-  - Development tools
-
-#### 3. **Cost-Performance Balance**
-- **A100 40GB**: ~$2.95/hour (on-demand)
-- **A100 80GB**: ~$3.67/hour (on-demand)
-- **Committed Use Discounts**: Save up to 55% with 1-year or 3-year commitments
-- **Preemptible/Spot**: Save up to 70% for non-critical workloads
-
-#### 4. **Availability and Support**
-- Available in multiple GCP regions
-- Strong ecosystem support for ML workloads
-- Compatible with GKE (Google Kubernetes Engine) for orchestration
-- Integrates with Vertex AI for MLOps
-
-### Alternative Options
-
-#### **Budget Option: n1-standard-4 with NVIDIA T4**
 ```
 Machine Type: n1-standard-4
 - vCPUs: 4
 - Memory: 15 GB RAM
 - GPU: 1x NVIDIA T4 (16GB)
-- Cost: ~$0.95/hour
+- Storage: 200 GB SSD Persistent Disk
+- Region: us-central1 (Iowa)
+- Network: Default VPC
 ```
-**Pros**: Much cheaper, good for development/testing
-**Cons**: Limited VRAM (16GB) may require model quantization (INT8), slower inference
 
-#### **High-Performance Option: a2-highgpu-1g with NVIDIA A100 80GB**
+### Why This Instance Type for MVP?
+
+#### 1. **GPU Selection: NVIDIA T4**
+- **Memory**: 16GB sufficient for 7B parameter models with INT8 quantization
+- **Cost**: ~$0.67/hour — $300 GCP free credits give ~18 days of 24/7 usage
+- **Turing Architecture**: Good inference performance for real-time voice
+- **Widely Available**: Easy to get quota approved quickly
+
+#### 2. **CPU Selection: n1-standard-4**
+- **4 vCPUs**: Sufficient for audio preprocessing and API handling
+- **15 GB RAM**: Adequate for model loading and request queuing
+- **Cost-effective**: Half the cost of n1-standard-8
+
+#### 3. **Default VPC Networking**
+- No custom VPC permissions required (works with new GCP accounts)
+- Simplified setup — uses GCP's built-in default network
+- Firewall rules added for SSH, HTTP, and WebSocket access
+
+#### 4. **Cost-Performance Balance**
+- **T4**: ~$0.67/hour (on-demand)
+- **Free credits**: $300 = ~18 days of 24/7 usage
+- **Stop when idle**: Run only when needed to extend credit lifetime
+
+### Upgrade Options
+
+#### **Production: n1-standard-8 with NVIDIA A100 (40GB)**
+```
+Machine Type: n1-standard-8
+- vCPUs: 8
+- Memory: 30 GB RAM
+- GPU: 1x NVIDIA A100 (40GB)
+- Cost: ~$2.95/hour
+```
+**Pros**: 40GB VRAM for larger models, higher throughput
+**Cons**: Significantly more expensive
+
+#### **High-Performance: a2-highgpu-1g with NVIDIA A100 80GB**
 ```
 Machine Type: a2-highgpu-1g
 - vCPUs: 12
@@ -161,21 +147,23 @@ For real-time voice interaction:
 
 ## 5. Estimated Costs (Monthly)
 
-### On-Demand Pricing:
+### MVP Pricing (T4):
+```
+Instance: n1-standard-4 + T4
+- Compute: ~$0.67/hour × 730 hours = $489/month
+- Storage: 200GB SSD × $0.17/GB = $34/month
+- Network: ~$20/month (estimated)
+- Total: ~$543/month
+- With $300 free credits: ~18 days of 24/7 usage
+```
+
+### Production Pricing (A100, if upgrading later):
 ```
 Instance: n1-standard-8 + A100 40GB
 - Compute: ~$2.95/hour × 730 hours = $2,153/month
 - Storage: 500GB SSD × $0.17/GB = $85/month
 - Network: ~$50/month (estimated)
 - Total: ~$2,288/month
-```
-
-### With Committed Use (1-year):
-```
-- Compute: ~$1,327/month (38% savings)
-- Storage: $85/month
-- Network: ~$50/month
-- Total: ~$1,462/month
 ```
 
 ### Cost Optimization Tips:
@@ -186,9 +174,10 @@ Instance: n1-standard-8 + A100 40GB
 
 ## 6. Scaling Recommendations
 
-### Development/Testing:
+### MVP/Development (Current):
 - 1x T4 instance (16GB) with INT8 quantization
-- Cost: ~$700/month on-demand
+- Default VPC networking
+- Cost: ~$489/month on-demand
 
 ### Production (Low-Medium Traffic):
 - 1x A100 40GB instance
@@ -207,15 +196,16 @@ Instance: n1-standard-8 + A100 40GB
 
 ## Summary
 
-**For most use cases, we recommend:**
-- **Instance**: n1-standard-8 with 1x NVIDIA A100 40GB
+**For MVP, we recommend:**
+- **Instance**: n1-standard-4 with 1x NVIDIA T4
 - **Region**: us-central1 (Iowa)
-- **Storage**: 500GB SSD Persistent Disk
-- **Estimated Cost**: $1,500-2,300/month depending on commitment
+- **Storage**: 200GB SSD Persistent Disk
+- **Network**: Default VPC
+- **Estimated Cost**: ~$0.67/hour (~$489/month), with $300 free credits lasting ~18 days
 
-This provides the best balance of:
-- ✅ Sufficient VRAM for the model
+This provides:
+- ✅ Sufficient VRAM for 7B models with quantization
 - ✅ Low latency for real-time interaction
-- ✅ Cost efficiency
-- ✅ Easy scaling path
-- ✅ GCP ecosystem integration
+- ✅ Cost efficiency for MVP
+- ✅ Easy upgrade path to A100 later
+- ✅ Simple setup with default VPC

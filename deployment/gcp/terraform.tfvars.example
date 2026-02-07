@@ -10,15 +10,15 @@ zone   = "us-central1-a"
 
 # Instance configuration
 instance_name = "persona-plex-gpu"
-machine_type  = "n1-standard-8"
+machine_type  = "n1-standard-4"
 
 # GPU configuration
-# Options: "nvidia-tesla-a100" or "nvidia-tesla-t4"
-gpu_type  = "nvidia-tesla-a100"
+# Options: "nvidia-tesla-t4" or "nvidia-tesla-a100"
+gpu_type  = "nvidia-tesla-t4"
 gpu_count = 1
 
 # Disk size in GB
-disk_size_gb = 500
+disk_size_gb = 200
 
 # Environment (dev, staging, prod)
 environment = "prod"

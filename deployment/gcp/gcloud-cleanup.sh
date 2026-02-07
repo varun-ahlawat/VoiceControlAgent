@@ -29,7 +29,7 @@ echo ""
 echo "Resources to be deleted:"
 echo "  - Instance: ${INSTANCE_NAME}"
 echo "  - Static IP: persona-plex-static-ip"
-echo "  - VPC Network: persona-plex-network"
+echo "  - Firewall rules: persona-plex-allow-*"
 echo "  - Service Account: persona-plex-sa"
 echo "  - GCS Bucket: ${PROJECT_ID}-persona-plex-models"
 echo ""
@@ -56,14 +56,6 @@ echo "Deleting firewall rules..."
 gcloud compute firewall-rules delete persona-plex-allow-ssh --quiet || true
 gcloud compute firewall-rules delete persona-plex-allow-http --quiet || true
 gcloud compute firewall-rules delete persona-plex-allow-websocket --quiet || true
-
-# Delete subnet
-echo "Deleting subnet..."
-gcloud compute networks subnets delete persona-plex-subnet --region=${REGION} --quiet || true
-
-# Delete network
-echo "Deleting network..."
-gcloud compute networks delete persona-plex-network --quiet || true
 
 # Delete service account
 echo "Deleting service account..."
