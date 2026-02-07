@@ -92,7 +92,7 @@ gcloud compute instances describe persona-plex-gpu \
     --zone=us-central1-a \
     --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
 
-# Visit: https://EXTERNAL_IP:8998
+# Visit: http://EXTERNAL_IP:8998
 
 # SSH into the instance
 gcloud compute ssh persona-plex-gpu --zone=us-central1-a

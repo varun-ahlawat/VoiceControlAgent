@@ -1,5 +1,5 @@
 # Terraform configuration for Persona Plex deployment on GCP
-# This creates an optimized instance with NVIDIA T4 GPU on default VPC
+# This creates an optimized instance with NVIDIA T4 GPU on Default VPC
 
 terraform {
   required_version = ">= 1.0"

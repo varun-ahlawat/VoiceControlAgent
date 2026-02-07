@@ -40,7 +40,7 @@ This directory contains all necessary files to deploy Persona Plex on Google Clo
 
 # 3. Access
 # Get IP: gcloud compute instances describe persona-plex-gpu --zone=us-central1-a --format="get(networkInterfaces[0].accessConfigs[0].natIP)"
-# Visit: https://EXTERNAL_IP:8998
+# Visit: http://EXTERNAL_IP:8998
 
 # 4. Stop when done (save credits)
 gcloud compute instances stop persona-plex-gpu --zone=us-central1-a
@@ -94,7 +94,7 @@ After deployment:
 
 2. **Access your application:**
    ```bash
-   https://EXTERNAL_IP:8998
+   http://EXTERNAL_IP:8998
    ```
 
 ## Cleanup

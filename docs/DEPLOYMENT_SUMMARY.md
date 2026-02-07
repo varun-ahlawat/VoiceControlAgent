@@ -253,7 +253,7 @@ Audio Processing Buffers          2 GB
 Framework Overhead (PyTorch)      2-3 GB
 Operating Margin (20%)            5-8 GB
 ─────────────────────────────────────────
-Total (7B model)                  29-37 GB ⚠️ Needs quantization for T4 (16GB)
+Total (7B model)                  29-37 GB ⚠️ Needs INT8 quantization for T4 (16GB)
 
 Model Weights (13B @ FP16)        26 GB
 KV Cache (batch size 4)           4-6 GB
@@ -420,7 +420,7 @@ The Persona Plex GCP deployment setup is **complete and production-ready**. All 
 **User Action Required:**
 1. Request GCP T4 GPU quota in us-central1
 2. Run `./deploy.sh` from deployment/gcp/
-3. Access at https://EXTERNAL_IP:8998
+3. Access at http://EXTERNAL_IP:8998
 4. Stop instance when done to save credits
 
 The setup is ready for immediate deployment once GPU quota is approved and Hugging Face authentication is configured.
