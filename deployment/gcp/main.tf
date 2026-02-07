@@ -1,5 +1,5 @@
 # Terraform configuration for Persona Plex deployment on GCP
-# This creates an optimized instance with NVIDIA A100 GPU
+# This creates an optimized instance with NVIDIA T4 GPU on default VPC
 
 terraform {
   required_version = ">= 1.0"
@@ -38,13 +38,13 @@ variable "instance_name" {
 variable "machine_type" {
   description = "Machine type for the instance"
   type        = string
-  default     = "n1-standard-8"
+  default     = "n1-standard-4"
 }
 
 variable "gpu_type" {
-  description = "GPU type (nvidia-tesla-a100 or nvidia-tesla-t4)"
+  description = "GPU type (nvidia-tesla-t4 or nvidia-tesla-a100)"
   type        = string
-  default     = "nvidia-tesla-a100"
+  default     = "nvidia-tesla-t4"
 }
 
 variable "gpu_count" {
@@ -56,7 +56,7 @@ variable "gpu_count" {
 variable "disk_size_gb" {
   description = "Boot disk size in GB"
   type        = number
-  default     = 500
+  default     = 200
 }
 
 variable "environment" {
@@ -98,30 +98,10 @@ resource "google_project_iam_member" "monitoring" {
   member  = "serviceAccount:${google_service_account.persona_plex_sa.email}"
 }
 
-# VPC Network (use default or create custom)
-resource "google_compute_network" "persona_plex_network" {
-  name                    = "persona-plex-network"
-  auto_create_subnetworks = false
-  description             = "Custom network for Persona Plex deployment"
-}
-
-resource "google_compute_subnetwork" "persona_plex_subnet" {
-  name          = "persona-plex-subnet"
-  ip_cidr_range = "10.0.0.0/24"
-  region        = var.region
-  network       = google_compute_network.persona_plex_network.id
-  
-  log_config {
-    aggregation_interval = "INTERVAL_10_MIN"
-    flow_sampling        = 0.5
-    metadata             = "INCLUDE_ALL_METADATA"
-  }
-}
-
-# Firewall rules
+# Firewall rules (using default VPC network)
 resource "google_compute_firewall" "persona_plex_ssh" {
   name    = "persona-plex-allow-ssh"
-  network = google_compute_network.persona_plex_network.name
+  network = "default"
 
   allow {
     protocol = "tcp"
@@ -134,11 +114,11 @@ resource "google_compute_firewall" "persona_plex_ssh" {
 
 resource "google_compute_firewall" "persona_plex_http" {
   name    = "persona-plex-allow-http"
-  network = google_compute_network.persona_plex_network.name
+  network = "default"
 
   allow {
     protocol = "tcp"
-    ports    = ["80", "443", "8000", "8080"]
+    ports    = ["80", "443", "8000", "8080", "8998"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -147,11 +127,11 @@ resource "google_compute_firewall" "persona_plex_http" {
 
 resource "google_compute_firewall" "persona_plex_websocket" {
   name    = "persona-plex-allow-websocket"
-  network = google_compute_network.persona_plex_network.name
+  network = "default"
 
   allow {
     protocol = "tcp"
-    ports    = ["8765", "9000", "9090"]
+    ports    = ["8765", "9000"]
   }
 
   source_ranges = ["0.0.0.0/0"]
@@ -188,7 +168,7 @@ resource "google_compute_instance" "persona_plex_gpu" {
   }
 
   network_interface {
-    subnetwork = google_compute_subnetwork.persona_plex_subnet.id
+    network = "default"
     
     access_config {
       nat_ip = google_compute_address.persona_plex_ip.address

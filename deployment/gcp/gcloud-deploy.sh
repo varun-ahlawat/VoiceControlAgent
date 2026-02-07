@@ -9,10 +9,10 @@ PROJECT_ID="${1:-}"
 INSTANCE_NAME="${2:-persona-plex-gpu}"
 ZONE="${3:-us-central1-a}"
 REGION="${4:-us-central1}"
-MACHINE_TYPE="${5:-n1-standard-8}"
-GPU_TYPE="${6:-nvidia-tesla-a100}"
+MACHINE_TYPE="${5:-n1-standard-4}"
+GPU_TYPE="${6:-nvidia-tesla-t4}"
 GPU_COUNT="${7:-1}"
-DISK_SIZE="${8:-500}"
+DISK_SIZE="${8:-200}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -75,37 +75,13 @@ gcloud services enable storage.googleapis.com
 gcloud services enable logging.googleapis.com
 gcloud services enable monitoring.googleapis.com
 
-# Create VPC network
-echo -e "${YELLOW}Creating VPC network...${NC}"
-if ! gcloud compute networks describe persona-plex-network &> /dev/null; then
-    gcloud compute networks create persona-plex-network \
-        --subnet-mode=custom \
-        --bgp-routing-mode=regional
-    echo -e "${GREEN}✓ Network created${NC}"
-else
-    echo "Network already exists"
-fi
-
-# Create subnet
-echo -e "${YELLOW}Creating subnet...${NC}"
-if ! gcloud compute networks subnets describe persona-plex-subnet --region=${REGION} &> /dev/null; then
-    gcloud compute networks subnets create persona-plex-subnet \
-        --network=persona-plex-network \
-        --region=${REGION} \
-        --range=10.0.0.0/24 \
-        --enable-flow-logs
-    echo -e "${GREEN}✓ Subnet created${NC}"
-else
-    echo "Subnet already exists"
-fi
-
-# Create firewall rules
+# Create firewall rules (using default VPC network)
 echo -e "${YELLOW}Creating firewall rules...${NC}"
 
 # SSH
 if ! gcloud compute firewall-rules describe persona-plex-allow-ssh &> /dev/null; then
     gcloud compute firewall-rules create persona-plex-allow-ssh \
-        --network=persona-plex-network \
+        --network=default \
         --allow=tcp:22 \
         --source-ranges=0.0.0.0/0 \
         --target-tags=persona-plex
@@ -115,8 +91,8 @@ fi
 # HTTP/HTTPS
 if ! gcloud compute firewall-rules describe persona-plex-allow-http &> /dev/null; then
     gcloud compute firewall-rules create persona-plex-allow-http \
-        --network=persona-plex-network \
-        --allow=tcp:80,tcp:443,tcp:8000,tcp:8080 \
+        --network=default \
+        --allow=tcp:80,tcp:443,tcp:8000,tcp:8080,tcp:8998 \
         --source-ranges=0.0.0.0/0 \
         --target-tags=persona-plex
     echo -e "${GREEN}✓ HTTP firewall rule created${NC}"
@@ -125,8 +101,8 @@ fi
 # WebSocket/Custom
 if ! gcloud compute firewall-rules describe persona-plex-allow-websocket &> /dev/null; then
     gcloud compute firewall-rules create persona-plex-allow-websocket \
-        --network=persona-plex-network \
-        --allow=tcp:8765,tcp:9000,tcp:9090 \
+        --network=default \
+        --allow=tcp:8765,tcp:9000 \
         --source-ranges=0.0.0.0/0 \
         --target-tags=persona-plex
     echo -e "${GREEN}✓ WebSocket firewall rule created${NC}"
@@ -212,7 +188,7 @@ else
     gcloud compute instances create ${INSTANCE_NAME} \
         --zone=${ZONE} \
         --machine-type=${MACHINE_TYPE} \
-        --network-interface=subnet=persona-plex-subnet,address=${STATIC_IP} \
+        --network-interface=network=default,address=${STATIC_IP} \
         --maintenance-policy=TERMINATE \
         --provisioning-model=STANDARD \
         --service-account=${SA_EMAIL} \
